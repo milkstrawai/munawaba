@@ -1,0 +1,50 @@
+<%
+  rows = shifts.to_a
+  conflicts = local_assigns[:conflicts] || conflicts_for(rows)
+%>
+<% if rows.empty? %>
+  <%= render "munawaba/shared/empty", title: "No shifts in this window", description: "Check the date range and the schedule's status." %>
+<% else %>
+  <div class="mn-table-scroll" role="region" aria-label="Shifts" tabindex="0">
+    <table class="mn-table">
+      <thead>
+        <tr>
+          <th scope="col">Schedule / person</th>
+          <th scope="col">Starts</th>
+          <th scope="col">Ends</th>
+          <th scope="col">Coverage</th>
+          <th scope="col"><span class="mn-sr-only">Details</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.each do |shift| %>
+          <tr>
+            <td>
+              <%= link_to shift.schedule.name, schedule_path(shift.schedule), class: "mn-primary-text" %>
+              <span class="mn-cell-sub"><%= shift.effective_person.name %></span>
+            </td>
+            <td class="mn-mono"><%= local_time(shift.starts_at, zone) %></td>
+            <td class="mn-mono"><%= local_time(shift.ends_at, zone) %></td>
+            <td>
+              <% if shift.starts_at <= Time.current && shift.ends_at > Time.current %>
+                <%= state_badge("current") %>
+              <% else %>
+                <%= state_badge("planned") %>
+              <% end %>
+              <% if shift.effective_person_id != shift.base_person_id %>
+                <span class="mn-cell-sub">Override</span>
+              <% end %>
+              <% shift_dst_adjustments(shift).each do |adjustment| %>
+                <span class="mn-cell-sub mn-dst-cue"><%= adjustment %></span>
+              <% end %>
+              <% if conflicts[shift.id].present? %>
+                <span class="mn-conflict">Conflict: <%= conflicts[shift.id].map { |conflict| conflict["name"] }.uniq.join(", ") %></span>
+              <% end %>
+            </td>
+            <td><%= link_to "View shift →", shift_path(shift) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

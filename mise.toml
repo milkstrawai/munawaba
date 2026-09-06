@@ -1,0 +1,26 @@
+[tools]
+ruby = "4.0.6"
+
+[tasks."deps:ruby"]
+description = "Install the locked Ruby dependencies"
+run = "bundle install"
+
+[tasks.test]
+description = "Run the full test suite"
+run = "bin/test"
+
+[tasks.lint]
+description = "Check Ruby style and correctness"
+run = "bundle exec rubocop --no-server"
+
+[tasks.build]
+description = "Build the gem into pkg/"
+run = "bundle exec rake build"
+
+[tasks."docker:start"]
+description = "Start PostgreSQL for local development"
+run = "docker compose up -d"
+
+[tasks."docker:stop"]
+description = "Stop PostgreSQL for local development"
+run = "docker compose down"

@@ -1,0 +1,76 @@
+<div class="mn-overview">
+  <div class="mn-page-heading">
+    <%= page_title "Overview" %>
+    <%= link_to "New schedule", new_schedule_path, class: "mn-button mn-button-primary" %>
+  </div>
+
+  <% if @schedules.empty? %>
+    <%= render "munawaba/shared/empty", title: "Your first handoff starts here", description: "Register your people, create a schedule, and set the rotation order.", action: link_to("Add a person", new_person_path, class: "mn-button mn-button-primary") %>
+  <% else %>
+    <div class="mn-stats">
+      <div>
+        <span>Schedules</span>
+        <strong><%= @schedules.size %></strong>
+      </div>
+      <div>
+        <span>Active</span>
+        <strong><%= @schedules.count { |schedule| effective_schedule_state(schedule) == "active" } %></strong>
+      </div>
+      <div>
+        <span>Scheduled</span>
+        <strong><%= @schedules.count { |schedule| effective_schedule_state(schedule) == "scheduled" } %></strong>
+      </div>
+      <div>
+        <span>Without a roster</span>
+        <strong><%= @schedules.count { |schedule| @roster_counts[schedule.id].to_i.zero? } %></strong>
+      </div>
+    </div>
+    <div class="mn-section-heading">
+      <h2 id="mn-overview-schedules">All schedules</h2>
+      <span class="mn-muted">Times use each schedule’s timezone</span>
+    </div>
+    <div class="mn-table-scroll" role="region" aria-labelledby="mn-overview-schedules" tabindex="0">
+      <table class="mn-table mn-overview-table">
+        <thead>
+          <tr>
+            <th scope="col">Schedule</th>
+            <th scope="col">Cadence</th>
+            <th scope="col">State</th>
+            <th scope="col">On call now</th>
+            <th scope="col">Next</th>
+            <th scope="col">Next handoff</th>
+            <th scope="col">Scheduled through</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @schedules.each do |schedule| %>
+            <%
+              display_state = effective_schedule_state(schedule)
+              shifts = display_state == "paused" ? [] : @shifts.fetch(schedule.id, [])
+              current = shifts.find { |shift| shift.starts_at <= @now }
+              upcoming = shifts.find { |shift| shift.starts_at > @now }
+            %>
+            <tr>
+              <td class="mn-overview-schedule">
+                <%= link_to schedule.name, schedule_path(schedule), class: "mn-primary-text" %>
+                <span class="mn-cell-sub mn-mono"><%= schedule.time_zone %></span>
+                <% if (warning = lifecycle_maintenance_warning(schedule)) %>
+                  <span class="mn-conflict mn-maintenance-warning"><%= warning %></span>
+                <% end %>
+                <% if @roster_counts[schedule.id].to_i.zero? %>
+                  <span class="mn-conflict">Add people to complete this roster.</span>
+                <% end %>
+              </td>
+              <td><%= cadence_name(schedule) %></td>
+              <td><%= state_badge(display_state) %></td>
+              <td class="mn-overview-person"><span class="<%= current ? "mn-primary-text" : "mn-muted" %>"><%= current&.effective_person&.name || "No current coverage" %></span></td>
+              <td class="mn-overview-person"><%= upcoming&.effective_person&.name || "—" %></td>
+              <td class="mn-mono"><%= local_time(current&.ends_at || upcoming&.starts_at, schedule.time_zone) %></td>
+              <td class="mn-mono"><%= local_time(display_state == "paused" ? nil : @projected_through[schedule.id], schedule.time_zone) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,25 @@
+<%= form_with model: @person, url: @person.persisted? ? person_path(@person) : people_path, local: true, class: "mn-form mn-card", id: "mn-form" do |form| %>
+  <% if @person.persisted? %>
+    <%= form.hidden_field :lock_version %>
+  <% end %>
+  <div class="mn-field">
+    <%= form.label :name, "Display name (required)" %>
+    <%= form.text_field :name, required: true, maxlength: 120, autocomplete: "name", autofocus: @errors.blank? %>
+    <%= model_errors(@person, :name) %>
+  </div>
+  <div class="mn-field">
+    <%= form.label :email, "Organization email (required)" %>
+    <%= form.email_field :email, required: true, maxlength: 320, autocomplete: "email" %>
+    <%= model_errors(@person, :email) %>
+  </div>
+  <div class="mn-field">
+    <%= form.label :slack_member_id, "Slack member ID (optional)" %>
+    <%= form.text_field :slack_member_id, maxlength: 32, placeholder: "U012ABC34", spellcheck: false, autocomplete: "off", aria: { describedby: "mn-slack-id-hint" } %>
+    <p id="mn-slack-id-hint" class="mn-hint">For Slack mentions. Without an ID, messages use the person’s display name.</p>
+    <%= model_errors(@person, :slack_member_id) %>
+  </div>
+  <div class="mn-form-actions">
+    <%= form.submit @person.persisted? ? "Save person" : "Add person", class: "mn-button mn-button-primary" %>
+    <%= link_to "Cancel", @person.persisted? ? person_path(@person) : people_path, class: "mn-button" %>
+  </div>
+<% end %>

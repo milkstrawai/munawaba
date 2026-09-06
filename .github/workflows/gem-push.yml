@@ -1,0 +1,35 @@
+name: Release Gem to RubyGems.org
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    name: Build and Publish Package to RubyGems.org
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby 3.4.7
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.7'
+
+      - name: Check release validity
+        run: sh .github/scripts/check-release.sh
+
+      - name: Build gem
+        run: gem build munawaba.gemspec --output munawaba.gem
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_AUTH_TOKEN }}
+        run: |
+          : "${GEM_HOST_API_KEY:?RUBYGEMS_AUTH_TOKEN is required}"
+          gem push munawaba.gem

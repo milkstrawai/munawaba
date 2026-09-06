@@ -1,0 +1,5 @@
+<div class="mn-page-heading">
+  <%= page_title proposal_heading, @subject.respond_to?(:name) ? @subject.name : @subject.schedule.name %>
+  <%= link_to "Back", proposal_back_path, class: "mn-button" %>
+</div>
+<%= render "munawaba/shared/proposal_details" %>

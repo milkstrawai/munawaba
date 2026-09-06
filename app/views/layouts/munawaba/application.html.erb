@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <meta name="turbo-visit-control" content="reload">
+    <title><%= content_for?(:title) ? "#{yield(:title)} · Munawaba" : "Munawaba" %></title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" type="image/png" href="<%= frontend_asset_path(version: Munawaba::VERSION, id: "logo.png") %>">
+    <%= stylesheet_link_tag frontend_asset_path(version: Munawaba::VERSION, id: "dashboard.css"), nonce: content_security_policy_nonce %>
+    <%= javascript_include_tag frontend_asset_path(version: Munawaba::VERSION, id: "dashboard.js"), defer: true, nonce: content_security_policy_nonce %>
+  </head>
+  <body>
+    <div class="mn-app" data-mn-theme="<%= munawaba_theme %>" data-turbo="false">
+      <a href="#mn-main" class="mn-skip-link">Skip to content</a>
+      <aside class="mn-sidebar" aria-label="Munawaba navigation">
+        <%= link_to root_path, class: "mn-brand" do %>
+          <%= image_tag frontend_asset_path(version: Munawaba::VERSION, id: "logo.png"), alt: "", class: "mn-brand-logo", width: 18, height: 18 %>
+          <span class="mn-brand-name">munawaba</span>
+          <span class="mn-version">v<%= Munawaba::VERSION %></span>
+        <% end %>
+        <div class="mn-desktop-navigation">
+          <%= render "munawaba/shared/navigation" %>
+        </div>
+        <details class="mn-menu" data-mn-menu>
+          <summary>Menu <span aria-hidden="true">☰</span></summary>
+          <%= render "munawaba/shared/navigation" %>
+        </details>
+        <div class="mn-sidebar-footer">
+          <span>On-call rotations</span>
+        </div>
+      </aside>
+      <div class="mn-workspace">
+        <header class="mn-topbar">
+          <nav class="mn-breadcrumbs" aria-label="Breadcrumb">
+            <%= link_to "Munawaba", root_path %>
+            <span class="mn-breadcrumb-separator" aria-hidden="true">/</span>
+            <span aria-current="page"><%= content_for?(:title) ? yield(:title) : "Overview" %></span>
+          </nav>
+          <% theme_action = munawaba_theme == "dark" ? "Light theme" : "Dark theme" %>
+          <%= form_with url: theme_path, method: :patch, local: true, class: "mn-theme-form" do %>
+            <%= hidden_field_tag :theme, munawaba_theme == "dark" ? "light" : "dark" %>
+            <%= button_tag type: "submit", class: "mn-theme-button", title: theme_action, aria: { label: theme_action } do %>
+              <span aria-hidden="true"><%= munawaba_theme == "dark" ? "◐" : "◑" %></span>
+              <span class="mn-sr-only"><%= theme_action %></span>
+            <% end %>
+          <% end %>
+        </header>
+        <main id="mn-main" class="mn-main" tabindex="-1">
+          <% if flash[:notice].present? %>
+            <div class="mn-notice" role="status"><%= flash[:notice] %></div>
+          <% end %>
+          <%= render "munawaba/shared/errors", record: (@person || @schedule || @record) %>
+          <%= yield %>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

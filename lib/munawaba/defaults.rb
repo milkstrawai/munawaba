@@ -1,0 +1,20 @@
+# frozen_string_literal: true
+
+module Munawaba
+  module Defaults
+    MAXIMUM_SCHEDULE_MEMBERS = 100
+    SHIFT_GENERATION_HORIZON = 13.months.freeze
+    START_NOTIFICATION_GRACE_PERIOD = 1.hour.freeze
+    NOTIFICATION_ENQUEUE_LEASE = 30.minutes.freeze
+    NOTIFICATION_PROCESSING_LEASE = 2.minutes.freeze
+    NOTIFICATION_BATCH_SIZE = 100
+    NOTIFICATION_MAX_ATTEMPTS = 8
+    NOTIFICATION_BACKOFF_BASE = 30.seconds.freeze
+    NOTIFICATION_BACKOFF_CAP = 30.minutes.freeze
+    NOTIFICATION_RETRY_AFTER_CAP = 1.hour.freeze
+    SLACK_OPEN_TIMEOUT = 3
+    SLACK_READ_TIMEOUT = 5
+    SLACK_WRITE_TIMEOUT = 5
+    SLACK_TOTAL_TIMEOUT = 20
+  end
+end

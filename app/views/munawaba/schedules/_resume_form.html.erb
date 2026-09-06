@@ -1,0 +1,24 @@
+<%= form_with url: preview_resume_schedule_path(@schedule), local: true, id: "mn-form", class: "mn-form" do %>
+  <%= hidden_field_tag :lock_version, @schedule.lock_version %>
+  <div class="mn-field">
+    <%= label_tag :boundary_index, "Resume at a handoff" %>
+    <%= select_tag :boundary_index, options_for_select(future_boundaries(@schedule), params[:boundary_index]), required: true %>
+  </div>
+  <fieldset>
+    <legend>Starting order · first person is Next</legend>
+    <p class="mn-hint">Choose the complete order for this new coverage run. Leave positions unused to remove people.</p>
+    <% @resume_ids.each_with_index do |id, index| %>
+      <div class="mn-field">
+        <%= label_tag "resume_person_#{index}", "Position #{index + 1}#{' · Next' if index.zero?}" %>
+        <%= select_tag "person_ids[]", options_from_collection_for_select(@resume_people, :id, :name, id), id: "resume_person_#{index}", include_blank: "Leave unused", required: index.zero? %>
+      </div>
+    <% end %>
+    <% if @resume_ids.length < [@resume_people.length, Munawaba::Defaults::MAXIMUM_SCHEDULE_MEMBERS].min %>
+      <%= button_tag "Add another position", name: "edit_order", value: "add", class: "mn-button", formnovalidate: true %>
+    <% end %>
+  </fieldset>
+  <%= submit_tag "Preview resume", class: "mn-button mn-button-primary", disabled: @resume_people.empty? %>
+  <% if @resume_people.empty? %>
+    <p class="mn-conflict">Register an active person before resuming.</p>
+  <% end %>
+<% end %>

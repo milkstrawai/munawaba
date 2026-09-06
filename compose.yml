@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17
+    ports:
+      - "127.0.0.1:55432:5432"
+    environment:
+      POSTGRES_USER: munawaba
+      POSTGRES_PASSWORD: munawaba
+      POSTGRES_DB: munawaba_development
+    volumes:
+      - postgres:/var/lib/postgresql/data
+volumes:
+  postgres:

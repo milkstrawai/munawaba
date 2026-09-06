@@ -1,0 +1,81 @@
+<div class="mn-page-heading">
+  <%= page_title "Calendar", "Coverage · #{@time_zone}" %>
+  <div class="mn-segment">
+    <%= link_to "Agenda", calendar_link(@from, "agenda"), aria: { current: ("page" if @view == "agenda") } %>
+    <%= link_to "Month", calendar_link(@from, "month"), aria: { current: ("page" if @view == "month") } %>
+  </div>
+</div>
+
+<%= form_with url: calendar_path, method: :get, local: true, class: "mn-filter-bar", id: "mn-form" do %>
+  <%= hidden_field_tag :view, @view %>
+  <div>
+    <%= label_tag :schedule_id, "Schedule" %>
+    <%= select_tag :schedule_id, options_from_collection_for_select(@schedules, :id, :name, params[:schedule_id]), include_blank: "All schedules" %>
+  </div>
+  <div>
+    <%= label_tag :person_id, "Person" %>
+    <%= select_tag :person_id, options_from_collection_for_select(@people, :id, :name, params[:person_id]), include_blank: "All people" %>
+  </div>
+  <div>
+    <%= label_tag :date, "From date" %>
+    <%= date_field_tag :date, @from %>
+  </div>
+  <%= submit_tag "Apply", class: "mn-button" %>
+  <%= link_to "Clear", calendar_path %>
+<% end %>
+
+<div class="mn-section-heading">
+  <h2><%= @view == "month" ? @from.strftime("%B %Y") : "#{@from.strftime('%b %-d')} – #{(@until - 1).strftime('%b %-d, %Y')}" %></h2>
+  <div class="mn-actions">
+    <%= link_to "← Previous", calendar_link(@previous_date), class: "mn-button" if @previous_date %>
+    <%= link_to "Today", calendar_path(request.query_parameters.except("date", "until").merge(date: Time.current.in_time_zone(@time_zone).to_date)), class: "mn-button" %>
+    <%= link_to "Next →", calendar_link(@next_date), class: "mn-button" if @next_date %>
+  </div>
+</div>
+
+<% if @view == "month" && @errors.blank? %>
+  <%
+    conflicts = conflicts_for(@shifts)
+    shift_cards = {}
+  %>
+  <div class="mn-calendar-scroll" role="region" aria-label="Month calendar, <%= @time_zone %>" tabindex="0">
+    <div class="mn-month-grid">
+      <% calendar_days.first(7).each do |day| %>
+        <div class="mn-weekday"><%= day.strftime("%A") %></div>
+      <% end %>
+      <% calendar_days.each do |day| %>
+        <section class="mn-day <%= 'mn-day-outside' if day.month != @from.month %>">
+          <h3><time datetime="<%= day.iso8601 %>"><%= day.day %></time><%= " · Today" if day == Time.current.in_time_zone(@time_zone).to_date %></h3>
+          <% day_shifts = shifts_on(day) %>
+          <% day_shifts.first(3).each do |shift| %>
+            <%= shift_cards[shift.id] ||= render("munawaba/calendars/shift", shift: shift, conflicts: conflicts) %>
+          <% end %>
+          <% if day_shifts.size > 3 %>
+            <details class="mn-day-more">
+              <summary><%= day_shifts.size - 3 %> more shifts</summary>
+              <% day_shifts.drop(3).each do |shift| %>
+                <%= shift_cards[shift.id] ||= render("munawaba/calendars/shift", shift: shift, conflicts: conflicts) %>
+              <% end %>
+            </details>
+          <% end %>
+        </section>
+      <% end %>
+    </div>
+  </div>
+<% elsif @errors.blank? %>
+  <%
+    conflicts = conflicts_for(@shifts)
+    weeks = @shifts.group_by do |shift|
+      [shift.starts_at.in_time_zone(@time_zone).to_date, @from].max.beginning_of_week(Munawaba.config.week_starts_on)
+    end
+  %>
+  <% if weeks.empty? %>
+    <%= render "munawaba/shared/shifts", shifts: [], zone: @time_zone %>
+  <% end %>
+  <% weeks.each do |week, shifts| %>
+    <div class="mn-section-heading">
+      <h2>Week of <%= week.strftime("%b %-d, %Y") %></h2>
+    </div>
+    <%= render "munawaba/shared/shifts", shifts: shifts, zone: @time_zone, conflicts: conflicts %>
+  <% end %>
+<% end %>

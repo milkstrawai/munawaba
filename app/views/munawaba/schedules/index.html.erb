@@ -1,0 +1,46 @@
+<div class="mn-page-heading">
+  <%= page_title "Schedules", "Independent rotations with their own people and handoff times." %>
+  <%= link_to "New schedule", new_schedule_path, class: "mn-button mn-button-primary" %>
+</div>
+
+<% if @schedules.empty? %>
+  <%= render "munawaba/shared/empty", title: "No schedules yet", description: "Create a schedule, add a roster, then preview its first coverage run." %>
+<% else %>
+  <div class="mn-table-scroll" role="region" aria-label="Schedules" tabindex="0">
+    <table class="mn-table">
+      <thead>
+        <tr>
+          <th scope="col">Schedule</th>
+          <th scope="col">Cadence</th>
+          <th scope="col">Handoff</th>
+          <th scope="col">People</th>
+          <th scope="col">State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @schedules.each do |schedule| %>
+          <tr>
+            <td><%= link_to schedule.name, schedule_path(schedule), class: "mn-primary-text" %></td>
+            <td><%= cadence_name(schedule) %></td>
+            <td class="mn-mono">
+              <%= handoff_time(schedule) %>
+              <span class="mn-cell-sub"><%= schedule.time_zone %></span>
+            </td>
+            <td class="mn-mono"><%= @membership_counts[schedule.id].to_i %></td>
+            <td>
+              <%= state_badge(effective_schedule_state(schedule)) %>
+              <% if (warning = lifecycle_maintenance_warning(schedule)) %>
+                <span class="mn-cell-sub mn-maintenance-warning"><%= warning %></span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% if @more %>
+    <div class="mn-pagination">
+      <%= link_to "More schedules →", schedules_path(after: name_cursor_for(@schedules.last)), class: "mn-button" %>
+    </div>
+  <% end %>
+<% end %>

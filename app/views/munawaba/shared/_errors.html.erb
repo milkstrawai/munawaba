@@ -1,0 +1,23 @@
+<% messages = Array(@errors).presence || (record.respond_to?(:errors) ? record.errors.full_messages : []) %>
+<% if messages.present? || @stale %>
+  <div class="mn-error-summary" role="alert" tabindex="-1" data-mn-errors>
+    <h2><%= @stale ? "This preview has changed" : "Check the following" %></h2>
+    <% if @stale %>
+      <p>Projected assignments or handoff times changed. Review the refreshed preview and confirm again.</p>
+    <% end %>
+    <ul>
+      <% if record.respond_to?(:errors) && record.errors.any? %>
+        <% record.errors.each do |error| %>
+          <li><a href="#<%= error.attribute == :base ? 'mn-form' : "#{record.model_name.param_key}_#{error.attribute}" %>"><%= error.full_message %></a></li>
+        <% end %>
+        <% (messages - record.errors.full_messages).each do |message| %>
+          <li><a href="#mn-form"><%= message %></a></li>
+        <% end %>
+      <% else %>
+        <% messages.each do |message| %>
+          <li><a href="#mn-form"><%= message %></a></li>
+        <% end %>
+      <% end %>
+    </ul>
+  </div>
+<% end %>

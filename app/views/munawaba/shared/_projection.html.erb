@@ -1,0 +1,20 @@
+<div class="mn-table-scroll" role="region" aria-label="Assignment preview" tabindex="0">
+  <table class="mn-table">
+    <thead>
+      <tr>
+        <th scope="col">Person</th>
+        <th scope="col">Starts</th>
+        <th scope="col">Ends</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% slots.first(6).each do |slot| %>
+        <tr>
+          <td><%= person_label(slot[:effective_person_id] || slot[:base_person_id]) %></td>
+          <td class="mn-mono"><%= local_time(slot[:starts_at], zone) %></td>
+          <td class="mn-mono"><%= local_time(slot[:ends_at], zone) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,17 @@
+<%= link_to shift_path(shift), class: "mn-calendar-shift" do %>
+  <strong><%= shift.schedule.name %></strong>
+  <span><%= shift.effective_person.name %></span>
+  <span class="mn-mono"><%= local_time(shift.starts_at, @time_zone, format: "%b %-d %H:%M") %> → <%= local_time(shift.ends_at, @time_zone, format: "%b %-d %H:%M") %></span>
+  <% if shift.starts_at <= Time.current && shift.ends_at > Time.current %>
+    <span>● Current shift</span>
+  <% end %>
+  <% if shift.effective_person_id != shift.base_person_id %>
+    <span>Override</span>
+  <% end %>
+  <% shift_dst_adjustments(shift).each do |adjustment| %>
+    <span class="mn-dst-cue"><%= adjustment %></span>
+  <% end %>
+  <% if conflicts[shift.id].present? %>
+    <span class="mn-conflict">Conflict: <%= conflicts[shift.id].map { |row| row["name"] }.uniq.join(", ") %></span>
+  <% end %>
+<% end %>

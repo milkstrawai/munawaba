@@ -1,0 +1,65 @@
+<%= page_title "Slack deliveries", "Times: #{Munawaba.config.organization_time_zone}" %>
+<div class="mn-notice">An unknown outcome means Slack may have received the message. Retrying can send it twice.</div>
+
+<%= form_with url: notification_deliveries_path, method: :get, local: true, class: "mn-filter-bar", id: "mn-form" do %>
+  <div>
+    <%= label_tag :schedule_id, "Schedule" %>
+    <%= select_tag :schedule_id, options_from_collection_for_select(@schedules, :id, :name, params[:schedule_id]), include_blank: "All schedules" %>
+  </div>
+  <div>
+    <%= label_tag :status, "Status" %>
+    <%= select_tag :status, options_for_select(%w[pending enqueued processing delivered failed canceled stale].map { |status| [status.humanize, status] }, params[:status]), include_blank: "All statuses" %>
+  </div>
+  <%= submit_tag "Filter", class: "mn-button" %>
+  <%= link_to "Clear", notification_deliveries_path %>
+<% end %>
+
+<% if @deliveries.empty? %>
+  <%= render "munawaba/shared/empty", title: "No deliveries found", description: "Try another filter, or check the schedule's Slack settings." %>
+<% else %>
+  <div class="mn-table-scroll" role="region" aria-label="Notification deliveries" tabindex="0">
+    <table class="mn-table">
+      <thead>
+        <tr>
+          <th scope="col">Created / schedule</th>
+          <th scope="col">Kind</th>
+          <th scope="col">Status</th>
+          <th scope="col">Attempts</th>
+          <th scope="col">Outcome / action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @deliveries.each do |delivery| %>
+          <tr>
+            <td class="mn-mono">
+              <%= local_time(delivery.created_at) %>
+              <span class="mn-cell-sub"><%= link_to delivery.schedule.name, edit_schedule_slack_integration_path(delivery.schedule) %></span>
+            </td>
+            <td><%= delivery.kind.humanize %></td>
+            <td><%= state_badge(delivery.status) %></td>
+            <td class="mn-mono"><%= delivery.attempt_count %></td>
+            <td>
+              <% if delivery.last_error_code == "delivery_outcome_unknown" %>
+                <p class="mn-conflict">Unknown outcome · may have reached Slack</p>
+              <% end %>
+              <span class="mn-mono"><%= delivery.last_error_code.presence || (delivery.delivered_at ? "Delivered #{local_time(delivery.delivered_at)}" : "—") %></span>
+              <% if delivery.status == "failed" %>
+                <%= form_with url: retry_notification_delivery_path(delivery), local: true do %>
+                  <% if delivery.last_error_code == "delivery_outcome_unknown" %>
+                    <label class="mn-checkbox"><%= check_box_tag :acknowledge_duplicate, "1", false, required: true %><span>I accept the risk of a duplicate message.</span></label>
+                  <% end %>
+                  <%= submit_tag "Retry failed delivery", class: "mn-button" %>
+                <% end %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% if @more %>
+    <div class="mn-pagination">
+      <%= link_to "Older deliveries →", notification_deliveries_path(request.query_parameters.merge(before: cursor_for(@deliveries.last, :created_at))), class: "mn-button" %>
+    </div>
+  <% end %>
+<% end %>

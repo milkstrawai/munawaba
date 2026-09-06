@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+mkdir -p tmp/browser-tools tmp/browser
+curl --fail --silent --show-error --location https://registry.npmjs.org/axe-core/-/axe-core-4.13.0.tgz |
+  tar -xzO package/axe.min.js > tmp/browser-tools/axe.min.js.tmp
+mv tmp/browser-tools/axe.min.js.tmp tmp/browser-tools/axe.min.js

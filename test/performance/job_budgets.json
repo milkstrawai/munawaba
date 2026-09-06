@@ -1,0 +1,9 @@
+{
+  "dispatcher_ms": 725,
+  "projection_ms": 225,
+  "dispatcher_queries": 102,
+  "projection_queries": 47,
+  "projection_instantiated_shifts": 55,
+  "projection_fixed_queries": 15,
+  "projection_queries_per_inserted": 4
+}

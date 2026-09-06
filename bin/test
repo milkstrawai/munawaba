@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+export TMPDIR="${TMPDIR:-$PWD/tmp/browser}"
+mkdir -p "$TMPDIR"
+bundle exec rake test "$@"

@@ -1,0 +1,65 @@
+<div class="mn-page-heading">
+  <%= page_title @shift.schedule.name, "Shift ##{@shift.id} · #{@shift.schedule.time_zone}" %>
+  <%= link_to "Back to schedule", schedule_path(@shift.schedule), class: "mn-button" %>
+</div>
+
+<section class="mn-card mn-compact-card">
+  <div class="mn-current-person">
+    <span class="mn-eyebrow">EFFECTIVE ASSIGNEE</span>
+    <strong><%= @shift.effective_person.name %></strong>
+  </div>
+  <dl class="mn-detail-list">
+    <dt>Base assignee</dt>
+    <dd><%= @shift.base_person.name %></dd>
+    <dt>Starts</dt>
+    <dd class="mn-mono"><%= local_time(@shift.starts_at, @shift.schedule.time_zone) %></dd>
+    <dt>Ends</dt>
+    <dd class="mn-mono"><%= local_time(@shift.ends_at, @shift.schedule.time_zone) %></dd>
+    <dt>Coverage run</dt>
+    <dd class="mn-mono"><%= @shift.coverage_revision %></dd>
+  </dl>
+  <% if @shift.schedule.time_zone != Munawaba.config.organization_time_zone %>
+    <p class="mn-hint"><%= Munawaba.config.organization_time_zone %>: <%= local_time(@shift.starts_at) %> – <%= local_time(@shift.ends_at) %></p>
+  <% end %>
+  <% if @shift.canceled_at %>
+    <%= state_badge("canceled") %>
+  <% elsif @shift.ends_at > Time.current %>
+    <%= link_to @shift.effective_person_id == @shift.base_person_id ? "Override shift" : "Replace override", new_shift_override_path(@shift), class: "mn-button mn-button-primary" %>
+  <% end %>
+  <%= link_to "View activity", activity_path(shift_id: @shift.id) %>
+</section>
+
+<% shift_dst_adjustments(@shift).each do |adjustment| %>
+  <p class="mn-notice mn-dst-cue"><%= adjustment %></p>
+<% end %>
+
+<% active_override = @overrides.find { |override| override.ended_at.nil? } %>
+<% if active_override && @shift.ends_at > Time.current && @shift.canceled_at.nil? %>
+  <section class="mn-card mn-compact-card">
+    <h2>Current override</h2>
+    <p><%= active_override.reason.presence || "No reason provided." %></p>
+    <% if @shift.base_person.active? %>
+      <%= form_with url: preview_shift_override_path(@shift), local: true do %>
+        <%= hidden_field_tag :operation, @shift.starts_at > Time.current ? "revoke" : "restore_to_base" %>
+        <%= submit_tag @shift.starts_at > Time.current ? "Preview revoke override" : "Preview restore to base", class: "mn-button" %>
+      <% end %>
+    <% else %>
+      <p class="mn-conflict">The base person is inactive. Select an active replacement.</p>
+    <% end %>
+  </section>
+<% end %>
+
+<% if @overrides.present? %>
+  <section class="mn-card">
+    <h2>Override history</h2>
+    <ul class="mn-history">
+      <% @overrides.each do |override| %>
+        <li>
+          <strong><%= override.end_reason&.humanize || "Active override" %></strong>
+          <span class="mn-mono"><%= local_time(override.created_at, @shift.schedule.time_zone) %></span>
+          <p><%= override.reason.presence || "No reason provided." %></p>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>

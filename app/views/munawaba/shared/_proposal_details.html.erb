@@ -1,0 +1,108 @@
+<%
+  slots = projection_slots
+  zone = if @subject.is_a?(Munawaba::Person)
+           Munawaba.config.organization_time_zone
+         elsif @subject.is_a?(Munawaba::Shift)
+           @subject.schedule.time_zone
+         else
+           @subject.time_zone
+         end
+  conflicts = Array(preview_value(:conflicts, []))
+  blockers = Array(detail_value(:blockers))
+%>
+
+<% if @operation.to_sym == :deactivate %>
+  <div class="mn-notice">Deactivation removes this person from their rotations. If you reactivate them, add them back to each rotation.</div>
+  <% Array(detail_value(:schedule_plans)).each do |plan| %>
+    <section class="mn-card">
+      <h2><%= plan[:name] %></h2>
+      <dl class="mn-detail-list">
+        <dt>Current order</dt>
+        <dd><%= Array(plan[:before_person_ids]).map { |id| person_label(id) }.join(" → ") %></dd>
+        <dt>Proposed order</dt>
+        <dd><%= Array(plan[:person_ids]).map { |id| person_label(id) }.join(" → ").presence || "Empty roster" %></dd>
+        <dt>Next</dt>
+        <dd><%= person_label(plan[:successor_person_id]) if plan[:successor_person_id] %></dd>
+        <dt>Effective</dt>
+        <dd><%= local_time(plan[:effective_at], zone) %></dd>
+      </dl>
+      <% Array(plan[:blockers]).each do |blocker| %>
+        <p class="mn-conflict"><%= blocker %></p>
+      <% end %>
+      <% planned_slots = Array(plan[:projection]) %>
+      <% if planned_slots.present? %>
+        <%= render "munawaba/shared/projection", slots: planned_slots, zone: zone %>
+      <% end %>
+    </section>
+  <% end %>
+<% end %>
+
+<% if %i[activate resume].include?(@operation.to_sym) %>
+  <div class="mn-card">
+    <dl class="mn-detail-list">
+      <dt>Initial coverage</dt>
+      <dd><strong><%= slots.length %> shifts</strong></dd>
+      <dt>Scheduled through</dt>
+      <dd class="mn-mono"><%= local_time(slots.last[:ends_at], zone) if slots.last %> · <%= zone %></dd>
+    </dl>
+    <% if @operation.to_sym == :activate && detail_value(:state).to_s == "active" %>
+      <p class="mn-notice">Coverage begins when you confirm.</p>
+    <% end %>
+  </div>
+<% end %>
+
+<% if slots.present? %>
+  <section class="mn-card">
+    <div class="mn-section-heading">
+      <h2>Next <%= [slots.length, 6].min %> assignments</h2>
+      <span class="mn-muted"><%= zone %></span>
+    </div>
+    <%= render "munawaba/shared/projection", slots: slots, zone: zone %>
+  </section>
+<% end %>
+
+<% Array(detail_value(:resolved_boundaries)).each do |boundary| %>
+  <% resolution = boundary.resolution %>
+  <% if resolution.present? && !%w[exact normal unambiguous].include?(resolution.to_s) %>
+    <div class="mn-notice">
+      <strong>Daylight saving adjustment</strong>
+      <p class="mn-dst-cue"><%= boundary_adjustment_text(boundary, edge: "Handoff", zone: zone) %></p>
+    </div>
+  <% end %>
+<% end %>
+
+<% if conflicts.present? %>
+  <section class="mn-warning-panel">
+    <h2><%= pluralize(conflicts.size, "conflict") %> across schedules</h2>
+    <p>The same person is assigned to overlapping coverage. Review every conflict before confirming.</p>
+    <ol class="mn-conflict-list">
+      <% conflicts.each do |conflict| %>
+        <li><%= readable_conflict(conflict, zone) %></li>
+      <% end %>
+    </ol>
+  </section>
+<% end %>
+
+<% if blockers.present? %>
+  <div class="mn-warning-panel">
+    <h2>This change cannot be confirmed yet</h2>
+    <ul>
+      <% blockers.each do |blocker| %>
+        <li><%= blocker %></li>
+      <% end %>
+    </ul>
+    <p>Resolve these issues and refresh the preview.</p>
+  </div>
+<% end %>
+
+<% if preview_value(:token).present? && blockers.empty? %>
+  <% target, method = confirmation_target %>
+  <%= form_with url: target, method: method, local: true, class: "mn-confirmation", id: (@operation.to_sym == :rotation ? "mn-confirmation-form" : "mn-form") do %>
+    <%= hidden_field_tag :proposal_token, preview_value(:token) %>
+    <%= submitted_hidden_fields(@attributes || {}) %>
+    <% if conflicts.present? %>
+      <label class="mn-checkbox"><%= check_box_tag :acknowledge_conflicts, "1", params[:acknowledge_conflicts] == "1", required: true %><span>I reviewed all <%= conflicts.size %> conflicts and accept the overlapping assignments.</span></label>
+    <% end %>
+    <%= submit_tag "Confirm #{(@operation.to_sym == :override ? 'override' : @operation.to_s.humanize.downcase)}", class: "mn-button #{@operation.to_sym == :deactivate ? 'mn-button-danger' : 'mn-button-primary'}" %>
+  <% end %>
+<% end %>

@@ -1,0 +1,86 @@
+<% display_state = effective_schedule_state(@schedule) %>
+<div class="mn-page-heading">
+  <%= page_title @schedule.name, "#{cadence_name(@schedule)} · #{handoff_time(@schedule)} · #{@schedule.time_zone}" %>
+  <div class="mn-actions">
+    <%= state_badge(display_state) %>
+    <%= link_to "Edit schedule", edit_schedule_path(@schedule), class: "mn-button" %>
+  </div>
+</div>
+
+<% if (warning = lifecycle_maintenance_warning(@schedule)) %>
+  <p class="mn-notice mn-maintenance-warning"><%= warning %></p>
+<% end %>
+
+<div class="mn-tabs">
+  <a href="#mn-coverage" aria-current="page">Coverage</a>
+  <%= link_to "Calendar", calendar_path(schedule_id: @schedule.id) %>
+  <%= link_to "Activity", activity_path(schedule_id: @schedule.id) %>
+  <%= link_to "Slack settings", edit_schedule_slack_integration_path(@schedule) %>
+</div>
+
+<div class="mn-two-columns">
+  <section class="mn-card">
+    <div class="mn-card-heading">
+      <h2>Current coverage</h2>
+      <span class="mn-eyebrow"><%= @schedule.time_zone %></span>
+    </div>
+    <div class="mn-current-person">
+      <strong><%= @current_shift&.effective_person&.name || "No current coverage" %></strong>
+      <span class="mn-muted"><%= @current_shift ? "Until #{local_time(@current_shift.ends_at, @schedule.time_zone)}" : "#{display_state.humanize} schedule" %></span>
+    </div>
+    <% case display_state %>
+    <% when "draft" %>
+      <%= form_with url: preview_activation_schedule_path(@schedule), local: true, id: "mn-form", class: "mn-form" do %>
+        <%= hidden_field_tag :lock_version, @schedule.lock_version %>
+        <p class="mn-hint">If the first handoff is in the future, coverage starts then. Otherwise, coverage starts when you confirm. Edit the schedule to choose a later start.</p>
+        <%= submit_tag "Preview activation", class: "mn-button mn-button-primary", disabled: @memberships.empty? %>
+      <% end %>
+      <% if @memberships.empty? %>
+        <p class="mn-conflict">Add at least one active person to the rotation before activation.</p>
+      <% end %>
+    <% when "active" %>
+      <%= form_with url: pause_schedule_path(@schedule), local: true do %>
+        <%= hidden_field_tag :lock_version, @schedule.lock_version %>
+        <%= hidden_field_tag :lifecycle_revision, @schedule.lifecycle_revision %>
+        <p class="mn-hint">If you pause, the current shift will finish and upcoming shifts will be canceled.</p>
+        <%= submit_tag "Pause after current shift", class: "mn-button mn-button-danger" %>
+      <% end %>
+    <% when "scheduled" %>
+      <p>Coverage begins <strong><%= local_time(@schedule.coverage_starts_at, @schedule.time_zone) %></strong>.</p>
+      <%= button_to "Cancel scheduled start", cancel_scheduled_schedule_path(@schedule), params: { lock_version: @schedule.lock_version, lifecycle_revision: @schedule.lifecycle_revision }, class: "mn-button mn-button-danger" %>
+    <% when "pausing" %>
+      <p>Pausing at <strong><%= local_time(@schedule.pause_effective_at, @schedule.time_zone) %></strong>. No next shift will start.</p>
+    <% when "paused" %>
+      <% if @schedule.state == "paused" %>
+        <%= render "resume_form" %>
+      <% end %>
+    <% end %>
+  </section>
+
+  <section class="mn-card">
+    <div class="mn-card-heading">
+      <h2>Rotation order</h2>
+      <%= link_to "Edit rotation", edit_schedule_rotation_path(@schedule) %>
+    </div>
+    <% if @memberships.empty? %>
+      <p class="mn-muted">No people in this rotation.</p>
+    <% else %>
+      <ol class="mn-roster">
+        <% @memberships.each_with_index do |membership, index| %>
+          <li>
+            <span class="mn-position"><%= index + 1 %></span>
+            <%= link_to membership.person.name, person_path(membership.person) %>
+            <%= state_badge("next") if index.zero? && !%w[paused pausing].include?(display_state) %>
+          </li>
+        <% end %>
+      </ol>
+    <% end %>
+    <p class="mn-hint">Next is the person due to take over, unless an override assigns someone else. Reordering an active schedule takes effect after the current shift.</p>
+  </section>
+</div>
+
+<div class="mn-section-heading" id="mn-coverage">
+  <h2>Upcoming shifts</h2>
+  <span class="mn-muted"><%= @schedule.time_zone %> · Scheduled through <%= local_time(@shifts.last&.ends_at, @schedule.time_zone) %></span>
+</div>
+<%= render "munawaba/shared/shifts", shifts: @shifts, zone: @schedule.time_zone %>

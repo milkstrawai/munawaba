@@ -1,0 +1,11 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: 12
+  url: <%= ENV.fetch("DATABASE_URL", "postgresql://munawaba:munawaba@127.0.0.1:55432/munawaba_#{ENV.fetch('RAILS_ENV', 'development')}") %>
+development:
+  <<: *default
+test:
+  <<: *default
+production:
+  <<: *default

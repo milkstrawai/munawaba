@@ -1,0 +1,39 @@
+<div class="mn-page-heading">
+  <%= page_title "Edit rotation", @schedule.name %>
+  <%= link_to "Back to schedule", schedule_path(@schedule), class: "mn-button" %>
+</div>
+<p class="mn-hint">The first person is Next. Move, remove, and Make next refresh a preview. Changes are saved only after confirmation.</p>
+
+<%= form_with url: preview_schedule_rotation_path(@schedule), local: true, class: "mn-card mn-form", id: "mn-form", data: { mn_rotation: true } do %>
+  <%= hidden_field_tag :lock_version, params[:lock_version] || @schedule.lock_version %>
+  <ol class="mn-roster mn-roster-editor" data-mn-order>
+    <% @person_ids.each_with_index do |id, index| %>
+      <li draggable="true" data-mn-person-id="<%= id %>">
+        <%= hidden_field_tag "person_ids[]", id, id: nil %>
+        <span class="mn-position"><%= index + 1 %></span>
+        <strong><%= @people_by_id[id]&.name || "Person ##{id}" %></strong>
+        <% if index.zero? %>
+          <%= state_badge("next") %>
+        <% end %>
+        <div class="mn-roster-controls">
+          <%= button_tag "↑", name: "move", value: "up:#{id}", class: "mn-button mn-icon-button", disabled: index.zero?, aria: { label: "Move #{@people_by_id[id]&.name} up" } %>
+          <%= button_tag "↓", name: "move", value: "down:#{id}", class: "mn-button mn-icon-button", disabled: index == @person_ids.length - 1, aria: { label: "Move #{@people_by_id[id]&.name} down" } %>
+          <%= button_tag "Make next", name: "move", value: "next:#{id}", class: "mn-button", disabled: index.zero? %>
+          <%= button_tag "Remove", name: "move", value: "remove:#{id}", class: "mn-button mn-danger-link", aria: { label: "Remove #{@people_by_id[id]&.name}" } %>
+        </div>
+      </li>
+    <% end %>
+  </ol>
+  <div class="mn-filter-bar">
+    <div>
+      <%= label_tag :add_person_id, "Add an active person" %>
+      <%= select_tag :add_person_id, options_from_collection_for_select(@available_people, :id, :name), include_blank: "Choose a person" %>
+    </div>
+    <%= submit_tag "Update preview", class: "mn-button mn-button-primary" %>
+  </div>
+  <p class="mn-hint" data-mn-order-announcement role="status">You can also drag rows, then update the preview.</p>
+<% end %>
+
+<% if @preview %>
+  <%= render "munawaba/shared/proposal_details" %>
+<% end %>

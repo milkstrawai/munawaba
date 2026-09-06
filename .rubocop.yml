@@ -1,0 +1,63 @@
+plugins:
+  - rubocop-rake
+  - rubocop-minitest
+
+AllCops:
+  TargetRubyVersion: 3.2
+  DisabledByDefault: true
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "gemfiles/**/*"
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - ".ruby-lsp/**/*"
+    - "test/dummy/db/**/*"
+    - "test/dummy/tmp/**/*"
+    - "test/dummy/log/**/*"
+    - "lib/generators/**/templates/**/*"
+
+Lint:
+  Enabled: true
+
+# Allow page.save_screenshot for browser evidence; report interactive debug helpers.
+Lint/Debugger:
+  DebuggerMethods:
+    Capybara:
+      - page.save_and_open_page
+      - page.save_and_open_screenshot
+      - page.save_page
+      - save_and_open_page
+      - save_and_open_screenshot
+      - save_page
+      - save_screenshot
+
+Layout:
+  Enabled: true
+
+# Keep long SQL, browser scripts, and other literals intact during formatting.
+Layout/LineLength:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: true
+  EnforcedStyle: double_quotes
+
+Minitest/DuplicateTestRun:
+  Enabled: true
+
+Minitest/Focus:
+  Enabled: true
+
+Minitest/UnreachableAssertion:
+  Enabled: true
+
+Rake/DuplicateNamespace:
+  Enabled: true
+
+Rake/DuplicateTask:
+  Enabled: true

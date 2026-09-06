@@ -1,0 +1,49 @@
+<%= form_with model: @schedule, url: @schedule.persisted? ? schedule_path(@schedule) : schedules_path, local: true, class: "mn-form mn-card", id: "mn-form" do |form| %>
+  <% if @schedule.persisted? %>
+    <%= form.hidden_field :lock_version %>
+  <% end %>
+  <div class="mn-field">
+    <%= form.label :name, "Schedule name (required)" %>
+    <%= form.text_field :name, required: true, maxlength: 120, placeholder: "Platform on call" %>
+    <%= model_errors(@schedule, :name) %>
+  </div>
+
+  <% timing_locked = @schedule.first_activated_at.present? || @schedule.state == "scheduled" %>
+  <fieldset <%= "disabled" if timing_locked %>>
+    <legend>Handoff rule</legend>
+    <% if timing_locked %>
+      <p class="mn-hint">Timing can only change on a draft that has never started.</p>
+    <% end %>
+    <div class="mn-field">
+      <%= form.label :cadence, "Cadence (required)" %>
+      <%= form.select :cadence, Munawaba::ApplicationHelper::CADENCES.map { |value, label| [label, value] } %>
+    </div>
+    <div class="mn-field">
+      <%= form.label :time_zone, "IANA timezone (required)" %>
+      <%= form.text_field :time_zone, required: true, list: "mn-timezones", placeholder: "Europe/London" %>
+      <datalist id="mn-timezones">
+        <% TZInfo::Timezone.all_identifiers.each do |zone| %>
+          <option value="<%= zone %>"></option>
+        <% end %>
+      </datalist>
+      <%= model_errors(@schedule, :time_zone) %>
+    </div>
+    <div class="mn-field-row">
+      <div class="mn-field">
+        <%= form.label :anchor_local_date, "First handoff date" %>
+        <%= form.date_field :anchor_local_date, required: true %>
+        <%= model_errors(@schedule, :anchor_local_date) %>
+      </div>
+      <div class="mn-field">
+        <%= label_tag "schedule_anchor_local_time", "Local handoff time" %>
+        <%= time_field_tag "schedule[anchor_local_time]", handoff_time(@schedule), required: true, step: 60 %>
+      </div>
+    </div>
+    <p class="mn-hint">Each boundary follows this local rule, including daylight saving and calendar month changes.</p>
+  </fieldset>
+
+  <div class="mn-form-actions">
+    <%= form.submit @schedule.persisted? ? "Save schedule" : "Create schedule", class: "mn-button mn-button-primary" %>
+    <%= link_to "Cancel", @schedule.persisted? ? schedule_path(@schedule) : schedules_path, class: "mn-button" %>
+  </div>
+<% end %>

@@ -1,0 +1,49 @@
+<div class="mn-page-heading">
+  <%= page_title "People", "Register people once. Include them in any number of schedules." %>
+  <%= link_to "Add person", new_person_path, class: "mn-button mn-button-primary" %>
+</div>
+
+<%= form_with url: people_path, method: :get, local: true, class: "mn-filter-bar" do %>
+  <div>
+    <%= label_tag :q, "Search people" %>
+    <%= search_field_tag :q, params[:q], placeholder: "Name or email" %>
+  </div>
+  <div>
+    <%= label_tag :state, "Status" %>
+    <%= select_tag :state, options_for_select([["All people", ""], ["Active", "active"], ["Inactive", "inactive"]], params[:state]) %>
+  </div>
+  <%= submit_tag "Filter", class: "mn-button" %>
+  <%= link_to "Clear", people_path %>
+<% end %>
+
+<% if @people.empty? %>
+  <%= render "munawaba/shared/empty", title: "No people found", description: "Add a person to start building your rotations." %>
+<% else %>
+  <div class="mn-table-scroll" role="region" aria-label="People" tabindex="0">
+    <table class="mn-table">
+      <thead>
+        <tr>
+          <th scope="col">Person</th>
+          <th scope="col">Email</th>
+          <th scope="col">Schedules</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @people.each do |person| %>
+          <tr>
+            <td><%= link_to person.name, person_path(person), class: "mn-primary-text" %></td>
+            <td><%= person.email %></td>
+            <td class="mn-mono"><%= @membership_counts[person.id].to_i %></td>
+            <td><%= state_badge(person.active? ? "active" : "inactive") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+  <% if @more %>
+    <div class="mn-pagination">
+      <%= link_to "More people →", people_path(request.query_parameters.merge(after: name_cursor_for(@people.last))), class: "mn-button" %>
+    </div>
+  <% end %>
+<% end %>

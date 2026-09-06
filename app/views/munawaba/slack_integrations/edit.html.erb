@@ -1,0 +1,48 @@
+<div class="mn-page-heading">
+  <%= page_title "Slack settings", @schedule.name %>
+  <%= link_to "Back to schedule", schedule_path(@schedule), class: "mn-button" %>
+</div>
+
+<div class="mn-two-columns">
+  <section>
+    <%= form_with url: schedule_slack_integration_path(@schedule), method: :patch, scope: :integration, local: true, class: "mn-card mn-form", id: "mn-form" do |form| %>
+      <%= form.hidden_field :lock_version, value: @schedule.lock_version %>
+      <h2>Incoming webhook</h2>
+      <p><%= @schedule.slack_webhook_configured_at ? "Configured #{local_time(@schedule.slack_webhook_configured_at)}" : "Not configured" %></p>
+      <div class="mn-field">
+        <%= form.label :slack_webhook_url, @schedule.slack_webhook_configured_at ? "Replace webhook URL" : "Webhook URL" %>
+        <%= form.password_field :slack_webhook_url, value: "", autocomplete: "new-password", placeholder: "https://hooks.slack.com/services/…", aria: { describedby: "mn-webhook-hint" } %>
+        <p class="mn-hint" id="mn-webhook-hint">Leave blank to keep the current webhook. All people and webhooks must belong to one Slack workspace.</p>
+      </div>
+      <label class="mn-checkbox"><%= form.check_box :slack_enabled, checked: @schedule.slack_enabled %><span>Enable Slack notifications</span></label>
+      <fieldset>
+        <legend>Message kinds</legend>
+        <% { notify_advance: "Advance reminder", notify_shift_start: "Shift starts", notify_assignment_change: "Override assignment changes", notify_next_assignment_change: "Next assignment changes" }.each do |field, label| %>
+          <label class="mn-checkbox"><%= form.check_box field, checked: @schedule.public_send(field) %><span><%= label %></span></label>
+        <% end %>
+        <div class="mn-field">
+          <%= form.label :advance_notice_seconds, "Advance reminder lead (seconds)" %>
+          <%= form.number_field :advance_notice_seconds, value: @schedule.advance_notice_seconds, min: 60, max: 2592000, required: true %>
+          <p class="mn-hint">86,400 seconds = 24 hours. Between 1 minute and 30 days.</p>
+        </div>
+      </fieldset>
+      <%= form.submit "Save Slack settings", class: "mn-button mn-button-primary" %>
+    <% end %>
+  </section>
+
+  <section class="mn-card mn-compact-card">
+    <h2>Delivery operations</h2>
+    <p class="mn-muted"><%= @schedule.slack_enabled ? "This integration is enabled." : "This integration is disabled." %></p>
+    <%= link_to "View delivery history →", notification_deliveries_path(schedule_id: @schedule.id) %>
+    <% if @schedule.slack_webhook_configured_at %>
+      <div class="mn-form-actions">
+        <%= button_to "Send test message", test_schedule_slack_integration_path(@schedule), params: { lock_version: @schedule.lock_version }, class: "mn-button", disabled: !@schedule.slack_enabled %>
+      </div>
+      <details>
+        <summary>Remove webhook</summary>
+        <p>This also turns off Slack notifications for this schedule.</p>
+        <%= button_to "Remove webhook", remove_schedule_slack_integration_path(@schedule), method: :delete, params: { lock_version: @schedule.lock_version }, class: "mn-button mn-button-danger" %>
+      </details>
+    <% end %>
+  </section>
+</div>

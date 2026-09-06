@@ -1,0 +1,100 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: RuboCop and Appraisal definitions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Ruby style and correctness
+        run: bundle exec rubocop --no-server
+      - name: Generated compatibility Gemfiles are current
+        run: |
+          bundle exec appraisal generate
+          git diff --exit-code -- gemfiles
+
+  tests:
+    name: Ruby ${{ matrix.ruby }} / Rails ${{ matrix.rails }} / PostgreSQL ${{ matrix.postgres }}${{ matrix.compatibility && ' (compatibility only)' || '' }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.compatibility }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { ruby: '4.0', rails: '8.1', postgres: '17', gemfile: Gemfile, primary: true, compatibility: false }
+          - { ruby: '3.4', rails: '8.1', postgres: '17', gemfile: Gemfile, primary: false, compatibility: false }
+          - { ruby: '4.0', rails: '8.1', postgres: '15', gemfile: Gemfile, primary: false, compatibility: false }
+          - { ruby: '4.0', rails: '8.1', postgres: '16', gemfile: Gemfile, primary: false, compatibility: false }
+          - { ruby: '4.0', rails: '8.1', postgres: '18', gemfile: Gemfile, primary: false, compatibility: false }
+          - { ruby: '3.2', rails: '7.2', postgres: '17', gemfile: gemfiles/rails_7_2.gemfile, primary: false, compatibility: true }
+          - { ruby: '3.3', rails: '8.0', postgres: '17', gemfile: gemfiles/rails_8_0.gemfile, primary: false, compatibility: true }
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: munawaba
+          POSTGRES_PASSWORD: munawaba
+          POSTGRES_DB: munawaba_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U munawaba -d munawaba_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      DATABASE_URL: postgres://munawaba:munawaba@127.0.0.1:5432/munawaba_test
+      RAILS_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Model, domain, request, job, generator and database contracts
+        run: bundle exec ruby -Itest -e 'Dir["test/**/*_test.rb"].reject { |path| path.start_with?("test/system/", "test/installation/") }.sort.each { |path| require_relative path }'
+      - name: Blank host installation
+        if: matrix.primary
+        run: bundle exec ruby -Itest test/installation/blank_host_test.rb
+      - name: Browser and no-JavaScript operations
+        if: matrix.primary
+        run: |
+          bin/browser-setup
+          TMPDIR="$PWD/tmp/browser" bundle exec ruby -Itest -e 'Dir["test/system/*_test.rb"].sort.each { |path| require_relative path }'
+      - name: Fresh query plans and HTTP/job performance budgets
+        if: matrix.primary
+        env:
+          MUNAWABA_PLAN_DATABASE_URL: postgres://munawaba:munawaba@127.0.0.1:5432/munawaba_query_plans
+          MUNAWABA_PERFORMANCE_DATABASE_URL: postgres://munawaba:munawaba@127.0.0.1:5432/munawaba_performance
+        run: bundle exec rake performance
+      - name: Security and dependency audit
+        if: matrix.primary
+        run: |
+          bundle exec brakeman --force-scan --rails8 --path . --skip-files test/ --no-pager --quiet
+          bundle exec brakeman --rails8 --path test/dummy --no-pager --quiet
+          bundle exec bundle-audit check --update
+      - name: Package the gem
+        if: matrix.primary
+        run: bundle exec rake build
+      - name: Preserve browser and query evidence
+        if: always() && matrix.primary
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-and-query-evidence
+          path: |
+            tmp/screenshots
+            test/dummy/tmp/screenshots
+            tmp/performance
+          if-no-files-found: ignore

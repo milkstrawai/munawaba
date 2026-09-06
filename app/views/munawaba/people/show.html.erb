@@ -1,0 +1,34 @@
+<div class="mn-page-heading">
+  <%= page_title @person.name, @person.email %>
+  <div class="mn-actions">
+    <%= state_badge(@person.active? ? "active" : "inactive") %>
+    <%= link_to "Edit person", edit_person_path(@person), class: "mn-button" %>
+  </div>
+</div>
+
+<div class="mn-card mn-compact-card">
+  <dl class="mn-detail-list">
+    <dt>Slack member ID</dt>
+    <dd class="mn-mono"><%= @person.slack_member_id.presence || "Not provided" %></dd>
+    <dt>Schedules</dt>
+    <dd><%= safe_join(@memberships.map { |membership| link_to membership.schedule.name, schedule_path(membership.schedule) }, ", ").presence || "No memberships" %></dd>
+  </dl>
+  <div class="mn-actions">
+    <%= link_to "View activity", activity_path(person_id: @person.id) %>
+    <%= link_to "View calendar", calendar_path(person_id: @person.id) %>
+    <% if @person.active? %>
+      <%= link_to "Deactivate person", deactivation_person_path(@person), class: "mn-danger-link" %>
+    <% else %>
+      <%= button_to "Reactivate person", reactivate_person_path(@person), method: :patch, params: { lock_version: @person.lock_version }, class: "mn-button" %>
+    <% end %>
+  </div>
+  <% unless @person.active? %>
+    <p class="mn-hint">Reactivation makes this person selectable again. Former memberships are not restored.</p>
+  <% end %>
+</div>
+
+<div class="mn-section-heading">
+  <h2>Current and upcoming assignments</h2>
+  <span class="mn-muted"><%= Munawaba.config.organization_time_zone %></span>
+</div>
+<%= render "munawaba/shared/shifts", shifts: @shifts, zone: Munawaba.config.organization_time_zone %>

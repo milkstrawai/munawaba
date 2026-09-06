@@ -1,0 +1,19 @@
+<%= page_title "Override whole shift", "#{@shift.schedule.name} · #{local_time(@shift.starts_at, @shift.schedule.time_zone)} – #{local_time(@shift.ends_at, @shift.schedule.time_zone)} · #{@shift.schedule.time_zone}" %>
+
+<%= form_with url: preview_shift_override_path(@shift), local: true, class: "mn-card mn-form", id: "mn-form" do %>
+  <%= hidden_field_tag :operation, "apply" %>
+  <%= hidden_field_tag :lock_version, @shift.lock_version %>
+  <div class="mn-field">
+    <%= label_tag :person_id, "Replacement person (required)" %>
+    <%= select_tag :person_id, options_from_collection_for_select(@people, :id, :name, params[:person_id]), required: true, include_blank: "Choose an active person" %>
+    <p class="mn-hint">Any active person can cover this shift, including someone outside the roster.</p>
+  </div>
+  <div class="mn-field">
+    <%= label_tag :reason, "Reason (optional)" %>
+    <%= text_area_tag :reason, params[:reason], maxlength: 1000, rows: 4, placeholder: "Add context for this change" %>
+  </div>
+  <div class="mn-form-actions">
+    <%= submit_tag "Preview override", class: "mn-button mn-button-primary" %>
+    <%= link_to "Cancel", shift_path(@shift), class: "mn-button" %>
+  </div>
+<% end %>
